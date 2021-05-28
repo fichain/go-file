@@ -12,15 +12,15 @@ func (t *torrent) Start() error {
 	return nil
 }
 
-//// Stop downloading and seeding.
-//// Stop closes all peer connections.
-//func (t *torrent) Stop() {
-//	select {
-//	case t.stopCommandC <- struct{}{}:
-//	case <-t.closeC:
-//	}
-//}
-//
+// Stop downloading and seeding.
+// Stop closes all peer connections.
+func (t *torrent) Stop() {
+	select {
+	case t.stopCommandC <- struct{}{}:
+	case <-t.closeC:
+	}
+}
+
 //// Announce torrent to trackers and DHT manually.
 //func (t *torrent) Announce() {
 //	select {

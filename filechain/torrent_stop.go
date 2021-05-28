@@ -3,8 +3,6 @@ package filechain
 import (
 	"github.com/fichain/go-file/internal/handshaker/incominghandshaker"
 	"github.com/fichain/go-file/internal/handshaker/outgoinghandshaker"
-	"github.com/fichain/go-file/internal/tracker"
-
 	//"github.com/fichain/go-file/internal/handshaker/incominghandshaker"
 	//"github.com/fichain/go-file/internal/handshaker/outgoinghandshaker"
 	//"github.com/fichain/go-file/internal/tracker"
@@ -40,12 +38,10 @@ func (t *torrent) stop(err error) {
 	t.stopPeers()
 	t.stopPiecedownloaders()
 	t.stopInfoDownloaders()
-	t.stopWebseedDownloads()
 
-	//todo resume
-	//if t.bitfield != nil {
-	//	_ = t.writeBitfield()
-	//}
+	if t.bitfield != nil {
+		_ = t.writeBitfield()
+	}
 
 	// Closing data is necessary to cancel ongoing IO operations on files.
 	t.closeData()
@@ -59,25 +55,7 @@ func (t *torrent) stop(err error) {
 
 	t.resetSpeeds()
 
-	// Stop periodical announcers first.
-	announcers := t.announcers // keep a reference to the list before nilling in order to start StopAnnouncer
-	t.stopPeriodicalAnnouncers()
-
-	// Then start another announcer to announce Stopped event to the trackers.
-	// The torrent enters "Stopping" state.
-	// This announcer times out in 5 seconds. After it's done the torrent is in "Stopped" status.
-	trackers := make([]tracker.Tracker, 0, len(announcers))
-	for _, an := range announcers {
-		if an.HasAnnounced {
-			trackers = append(trackers, an.Tracker)
-		}
-	}
-	if t.stoppedEventAnnouncer != nil {
-		panic("stopped event announcer exists")
-	}
-	//t.stoppedEventAnnouncer = announcer.NewStopAnnouncer(trackers, t.announcerFields(), t.session.config.TrackerStopTimeout, t.announcersStoppedC, t.log)
-
-	//go t.stoppedEventAnnouncer.Run()
+	//todo dht
 
 	t.addrList.Reset()
 }
@@ -111,6 +89,7 @@ func (t *torrent) resetSpeeds() {
 	t.uploadSpeed = metrics.NilMeter{}
 }
 
+//todo
 func (t *torrent) stopOutgoingHandshakers() {
 	t.log.Debugln("stopping outgoing handshakers")
 	for oh := range t.outgoingHandshakers {
@@ -119,6 +98,7 @@ func (t *torrent) stopOutgoingHandshakers() {
 	t.outgoingHandshakers = make(map[*outgoinghandshaker.OutgoingHandshaker]struct{})
 }
 
+//todo
 func (t *torrent) stopIncomingHandshakers() {
 	t.log.Debugln("stopping incoming handshakers")
 	for ih := range t.incomingHandshakers {

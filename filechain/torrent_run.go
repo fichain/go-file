@@ -22,8 +22,8 @@ func (t *torrent) run() {
 			return
 		case <-t.startCommandC:
 			t.start()
-		//case <-t.stopCommandC:
-		//	t.stop(nil)
+		case <-t.stopCommandC:
+			t.stop(nil)
 		//case <-t.announceCommandC:
 		//	t.setNeedMorePeers(true)
 		//case <-t.verifyCommandC:

@@ -159,7 +159,7 @@ type torrent struct {
 	//peersCommandC        chan peersRequest        // Peers()
 	//webseedsCommandC     chan webseedsRequest     // Webseeds()
 	startCommandC        chan struct{}            // Start()
-	//stopCommandC         chan struct{}            // Stop()
+	stopCommandC         chan struct{}            // Stop()
 	//announceCommandC     chan struct{}            // Announce()
 	//verifyCommandC       chan struct{}            // Verify()
 	//todo
@@ -308,7 +308,7 @@ func newTorrent2(
 		completeC:                 make(chan struct{}),
 		closeC:                    make(chan chan struct{}),
 		startCommandC:             make(chan struct{}),
-		//stopCommandC:              make(chan struct{}),
+		stopCommandC:              make(chan struct{}),
 		//announceCommandC:          make(chan struct{}),
 		//verifyCommandC:            make(chan struct{}),
 		//statsCommandC:             make(chan statsRequest),

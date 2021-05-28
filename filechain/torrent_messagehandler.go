@@ -224,7 +224,7 @@ func (t *torrent) handlePeerMessage(pm peer.Message) {
 	case peerprotocol.NotInterestedMessage:
 		pe.PeerInterested = false
 	case peerprotocol.RequestMessage:
-		pe.Logger().Debugln("request message!", msg.Index)
+		pe.Logger().Debugln("request message!", msg.Index, msg.Begin)
 		if t.pieces == nil || t.bitfield == nil {
 			pe.Logger().Error("request received but we don't have info")
 			t.closePeer(pe)

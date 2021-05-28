@@ -79,7 +79,7 @@ func (p *Conn) SendMessage(msg peerprotocol.Message) {
 // Piece data is read just before the message is sent.
 // If queued messages greater than `maxRequestsIn` specified in constructor, the last message is dropped.
 func (p *Conn) SendPiece(msg peerprotocol.RequestMessage, pi io.ReaderAt) {
-	p.log.Debugln("send piece! no:", msg.Index)
+	p.log.Debugln("send piece! no:", msg.Index, msg.Begin)
 	p.writer.SendPiece(msg, pi)
 }
 
