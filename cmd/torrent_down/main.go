@@ -30,7 +30,7 @@ func newSession() *filechain.Session {
 
 func main()  {
 	s := newSession()
-	fileId := "magnet:?xt=urn:btih:e6f4c122513097eff51194b6decda22e4733a16a&dn=film"
+	fileId := "magnet:?xt=urn:btih:4d8bff5cc79f68f07a85fe3f273f2ccd3b637f30&dn=film"
 	//filePath := ""
 	_, err := s.AddFileId(fileId, &filechain.AddTorrentOptions{StopAfterDownload: false, Stopped: false})
 	if err != nil {

@@ -2,6 +2,7 @@ package filechain
 
 import (
 	"encoding/hex"
+	"github.com/fichain/go-file/external/resumer/boltdbresumer"
 	"path"
 	"path/filepath"
 	"strings"
@@ -63,6 +64,11 @@ func (s *Session) addFileId(link string, opt *AddTorrentOptions) (*torrent, erro
 		opt.DataDir = s.config.DataDir
 	}
 
+	if t, ok := s.existTorrent(opt.ID); ok {
+		s.log.Infoln("torrent exist, return current torrent")
+		return t, nil
+	}
+
 	t, err := newTorrent2(
 		s,
 		time.Now(),
@@ -74,6 +80,7 @@ func (s *Session) addFileId(link string, opt *AddTorrentOptions) (*torrent, erro
 		//nil, // webseedSources
 		opt.StopAfterDownload,
 		opt.DataDir,
+		opt.ID,
 	)
 	if err != nil {
 		return nil, err
@@ -84,19 +91,18 @@ func (s *Session) addFileId(link string, opt *AddTorrentOptions) (*torrent, erro
 			t.Close()
 		}
 	}()
-	//todo resume
-	//rspec := &boltdbresumer.Spec{
-	//	InfoHash:          ma.InfoHash[:],
-	//	Name:              ma.Name,
-	//	Trackers:          ma.Trackers,
-	//	FixedPeers:        ma.Peers,
-	//	AddedAt:           t.addedAt,
-	//	StopAfterDownload: opt.StopAfterDownload,
-	//}
-	//err = s.resumer.Write(id, rspec)
-	//if err != nil {
-	//	return nil, err
-	//}
+	rspec := &boltdbresumer.Spec{
+		InfoHash:           ma.InfoHash[:],
+		Name:               ma.Name,
+		FixedPeers:         ma.Peers,
+		AddedAt:            t.addedAt,
+		StopAfterDownload:  opt.StopAfterDownload,
+		DataDir: 			opt.DataDir,
+	}
+	err = s.resumer.Write(opt.ID, rspec)
+	if err != nil {
+		return nil, err
+	}
 	t2 := s.insertTorrent(t)
 	if !opt.Stopped {
 		err = t2.Start()
@@ -119,11 +125,21 @@ func (s *Session) generateStorage(id string, dataDir string) (sto *filestorage.F
 }
 
 func (s *Session) insertTorrent(t *torrent) *torrent {
-	t.log.Info("added torrent")
+	t.log.Info("insert torrent")
 	s.mTorrents.Lock()
-	defer s.mTorrents.Unlock()
 	s.torrents[t.id] = t
-	s.sessionSpec.TorrentIds = append(s.sessionSpec.TorrentIds, t.id)
+	keys := make([]string, 0, len(s.torrents))
+	for k := range s.torrents {
+		keys = append(keys, k)
+	}
+	s.mTorrents.Unlock()
+
+	s.sessionSpec.TorrentIds = keys
+	s.log.Debugln("current ids:", keys)
+	err := s.sessionResumer.WriteTorrentIds(keys)
+	if err != nil {
+		s.log.Errorln("write torrent ids error:", err)
+	}
 	return t
 }
 
@@ -149,6 +165,12 @@ func (s *Session) CreateFile(dataDir string) (*torrent, error) {
 	}
 
 	torrentPath := path.Join(dataDir, "../")
+
+	if t, ok := s.existTorrent(opt.ID); ok {
+		s.log.Infoln("torrent exist, return current torrent")
+		return t, nil
+	}
+
 	t, err := newTorrent2(
 		s,
 		time.Now(),
@@ -159,11 +181,27 @@ func (s *Session) CreateFile(dataDir string) (*torrent, error) {
 		resumer.Stats{},
 		opt.StopAfterDownload,
 		torrentPath,
+		opt.ID,
 	)
 
 	if err != nil {
+		return t, err
+	}
+
+	rspec := &boltdbresumer.Spec{
+		InfoHash:          info.Hash[:],
+		Name:              info.Name,
+		AddedAt:           t.addedAt,
+		StopAfterDownload: opt.StopAfterDownload,
+		DataDir: 		   torrentPath,
+		Bitfield:   	   bf.Bytes(),
+		Info:			   info.Bytes,
+	}
+	err = s.resumer.Write(opt.ID, rspec)
+	if err != nil {
 		return nil, err
 	}
+
 	go s.checkTorrent(t)
 	defer func() {
 		if err != nil {
@@ -176,4 +214,13 @@ func (s *Session) CreateFile(dataDir string) (*torrent, error) {
 		err = t2.Start()
 	}
 	return t2, err
+}
+
+func (s *Session) existTorrent(id string) (*torrent, bool) {
+	s.mTorrents.Lock()
+	defer s.mTorrents.Unlock()
+	if _,ok := s.torrents[id]; ok {
+		return s.torrents[id], true
+	}
+	return nil, false
 }

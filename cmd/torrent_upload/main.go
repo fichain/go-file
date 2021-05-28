@@ -36,9 +36,11 @@ func main()  {
 
 	path := filepath.Join(currentPath, "../../testdata/sample_torrent")
 	s := newSession()
-	t, err := s.CreateFile(path)
+	fmt.Println("path:", path)
+
+	t, err := s.CreateFile("/Users/rain/Movies/film")
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 
 	var ret [20]byte
@@ -49,6 +51,7 @@ func main()  {
 		Name: t.Name(),
 	}
 	fmt.Println("ma info:", ma.String())
+	//s.RemoveData()
 	for  {
 		select {
 

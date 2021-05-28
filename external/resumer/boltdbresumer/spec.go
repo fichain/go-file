@@ -9,10 +9,7 @@ import (
 // Spec contains fields for resuming an existing torrent.
 type Spec struct {
 	InfoHash          []byte
-	Port              int
 	Name              string
-	Trackers          [][]string
-	URLList           []string
 	FixedPeers        []string
 	Info              []byte
 	Bitfield          []byte
@@ -51,10 +48,7 @@ type jsonSpec struct {
 // MarshalJSON converts the Spec to a JSON string.
 func (s Spec) MarshalJSON() ([]byte, error) {
 	j := jsonSpec{
-		Port:              s.Port,
 		Name:              s.Name,
-		Trackers:          s.Trackers,
-		URLList:           s.URLList,
 		FixedPeers:        s.FixedPeers,
 		AddedAt:           s.AddedAt,
 		BytesDownloaded:   s.BytesDownloaded,
@@ -91,10 +85,7 @@ func (s *Spec) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	s.SeededFor = time.Duration(j.SeededFor)
-	s.Port = j.Port
 	s.Name = j.Name
-	s.Trackers = j.Trackers
-	s.URLList = j.URLList
 	s.FixedPeers = j.FixedPeers
 	s.AddedAt = j.AddedAt
 	s.BytesDownloaded = j.BytesDownloaded

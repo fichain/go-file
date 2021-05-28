@@ -103,23 +103,24 @@ func NewSession(cfg Config) (*Session, error) {
 		}
 	}()
 	//resumer
-	sessionRe, err := boltdbresumer.NewSessionResumer(db, sessionBucket)
+	sessionRe, err := boltdbresumer.NewSessionResumer(db, sessionBucket, []byte(cfg.LibP2pUser))
 	if err != nil {
 		return nil, err
 	}
 
-	torrentRe, err := boltdbresumer.NewTorrentResumer(db, torrentsBucket)
+	torrentRe, err := boltdbresumer.NewTorrentResumer(db, torrentsBucket, []byte(cfg.LibP2pUser))
 	if err != nil {
 		return nil, err
 	}
 
 	//sessionspec
-	sessionSpec, err := sessionRe.Read(cfg.LibP2pUser)
+	sessionSpec, err := sessionRe.Read()
 	if err != nil {
-		return nil, err
+		l.Errorln("errs:", err)
 	}
 	if sessionSpec == nil {
 		sessionSpec = new(boltdbresumer.SessionSpec)
+		sessionSpec.TorrentIds = []string{}
 	}
 
 	bl := blocklist.New()
@@ -139,7 +140,7 @@ func NewSession(cfg Config) (*Session, error) {
 
 		db: 				db,
 		sessionResumer: 	sessionRe,
-		resumer:		torrentRe,
+		resumer:		 	torrentRe,
 		sessionSpec: 		sessionSpec,
 	}
 
@@ -178,12 +179,13 @@ func NewSession(cfg Config) (*Session, error) {
 
 // Close stops all torrents and release the resources.
 func (s *Session) Close() error {
+	s.log.Infoln("start close session")
 	var wg sync.WaitGroup
 	s.mTorrents.Lock()
 	wg.Add(len(s.torrents))
 	for _, t := range s.torrents {
 		go func(t *torrent) {
-			//t.Close()
+			t.Close()
 			wg.Done()
 		}(t)
 	}
@@ -191,4 +193,14 @@ func (s *Session) Close() error {
 	s.torrents = nil
 	s.mTorrents.Unlock()
 	return nil
+}
+
+func (s *Session) RemoveData()  {
+	s.Close()
+	s.mTorrents.Lock()
+	s.torrents = make(map[string]*torrent)
+	s.mTorrents.Unlock()
+	s.log.Infoln("start del resume")
+	s.sessionResumer.Del()
+	s.resumer.Del()
 }

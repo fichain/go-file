@@ -71,7 +71,7 @@ func (p *Conn) Messages() <-chan interface{} {
 
 // SendMessage queues a message for sending. Does not block.
 func (p *Conn) SendMessage(msg peerprotocol.Message) {
-	p.log.Debugf("send message: %v\n", msg)
+	//p.log.Debugf("send message: %v\n", msg)
 	p.writer.SendMessage(msg)
 }
 

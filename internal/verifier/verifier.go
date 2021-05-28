@@ -2,7 +2,6 @@ package verifier
 
 import (
 	"crypto/sha1"
-	"fmt"
 	"github.com/fichain/go-file/internal/bitfield"
 	"github.com/fichain/go-file/internal/piece"
 )
@@ -60,7 +59,7 @@ func (v *Verifier) Run(pieces []piece.Piece, progressC chan Progress, resultC ch
 			return
 		}
 		ok := p.VerifyHash(buf, hash)
-		fmt.Printf("result ok:%v\n", ok)
+		//fmt.Printf("result ok:%v\n", ok)
 		if ok {
 			v.Bitfield.Set(p.Index)
 			numOK++

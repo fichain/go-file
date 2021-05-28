@@ -14,7 +14,7 @@ var errClosed = errors.New("torrent is closed")
 
 func (t *torrent) close() {
 	// Stop if running.
-	//t.stop(errClosed)
+	t.stop(errClosed)
 
 	// Maybe we are in "Stopping" state. Close "stopped" event announcer.
 	if t.stoppedEventAnnouncer != nil {

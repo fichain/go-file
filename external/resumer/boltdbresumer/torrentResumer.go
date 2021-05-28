@@ -14,10 +14,7 @@ import (
 // Keys for the persisten storage.
 var Keys = struct {
 	InfoHash        []byte
-	Port            []byte
 	Name            []byte
-	Trackers        []byte
-	URLList         []byte
 	FixedPeers      []byte
 	Dest            []byte
 	Info            []byte
@@ -37,10 +34,7 @@ var Keys = struct {
 	TorrentIds		[]byte
 }{
 	InfoHash:        []byte("info_hash"),
-	Port:            []byte("port"),
 	Name:            []byte("name"),
-	Trackers:        []byte("trackers"),
-	URLList:         []byte("url_list"),
 	FixedPeers:      []byte("fixed_peers"),
 	Dest:            []byte("dest"),
 	Info:            []byte("info"),
@@ -62,15 +56,20 @@ var Keys = struct {
 
 // Resumer contains methods for saving/loading resume information of a torrent to a BoltDB database.
 type TorrentResumer struct {
-	db     *bbolt.DB
-	bucket []byte
+	db     		*bbolt.DB
+	bucket 		[]byte
+	user  []byte
 }
 
 // New returns a new Resumer.
-func NewTorrentResumer(db *bbolt.DB, bucket []byte) (*TorrentResumer, error) {
+func NewTorrentResumer(db *bbolt.DB, bucket []byte, user []byte) (*TorrentResumer, error) {
 	err := db.Update(func(tx *bbolt.Tx) error {
-		_, err2 := tx.CreateBucketIfNotExists(bucket)
-		return err2
+		b, err2 := tx.CreateBucketIfNotExists(user)
+		if err2 != nil {
+			return err2
+		}
+		_, err3 := b.CreateBucketIfNotExists(bucket)
+		return err3
 	})
 	if err != nil {
 		return nil, err
@@ -78,34 +77,23 @@ func NewTorrentResumer(db *bbolt.DB, bucket []byte) (*TorrentResumer, error) {
 	return &TorrentResumer{
 		db:     db,
 		bucket: bucket,
+		user: 	user,
 	}, nil
 }
 
 // Write the torrent spec for torrent with `torrentID`.
 func (r *TorrentResumer) Write(torrentID string, spec *Spec) error {
-	port := strconv.Itoa(spec.Port)
-	trackers, err := json.Marshal(spec.Trackers)
-	if err != nil {
-		return err
-	}
-	urlList, err := json.Marshal(spec.URLList)
-	if err != nil {
-		return err
-	}
 	fixedPeers, err := json.Marshal(spec.FixedPeers)
 	if err != nil {
 		return err
 	}
 	return r.db.Update(func(tx *bbolt.Tx) error {
-		b, err := tx.Bucket(r.bucket).CreateBucketIfNotExists([]byte(torrentID))
+		b, err := tx.Bucket(r.user).Bucket(r.bucket).CreateBucketIfNotExists([]byte(torrentID))
 		if err != nil {
 			return err
 		}
 		_ = b.Put(Keys.InfoHash, spec.InfoHash)
-		_ = b.Put(Keys.Port, []byte(port))
 		_ = b.Put(Keys.Name, []byte(spec.Name))
-		_ = b.Put(Keys.Trackers, trackers)
-		_ = b.Put(Keys.URLList, urlList)
 		_ = b.Put(Keys.FixedPeers, fixedPeers)
 		_ = b.Put(Keys.Info, spec.Info)
 		_ = b.Put(Keys.Bitfield, spec.Bitfield)
@@ -123,7 +111,7 @@ func (r *TorrentResumer) Write(torrentID string, spec *Spec) error {
 // WriteInfo writes only the info dict of a torrent.
 func (r *TorrentResumer) WriteInfo(torrentID string, value []byte) error {
 	return r.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(r.bucket).Bucket([]byte(torrentID))
+		b := tx.Bucket(r.user).Bucket(r.bucket).Bucket([]byte(torrentID))
 		if b == nil {
 			return nil
 		}
@@ -134,7 +122,7 @@ func (r *TorrentResumer) WriteInfo(torrentID string, value []byte) error {
 // WriteBitfield writes only bitfield of a torrent.
 func (r *TorrentResumer) WriteBitfield(torrentID string, value []byte) error {
 	return r.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(r.bucket).Bucket([]byte(torrentID))
+		b := tx.Bucket(r.user).Bucket(r.bucket).Bucket([]byte(torrentID))
 		if b == nil {
 			return nil
 		}
@@ -145,7 +133,7 @@ func (r *TorrentResumer) WriteBitfield(torrentID string, value []byte) error {
 // WriteStarted writes the start status of a torrent.
 func (r *TorrentResumer) WriteStarted(torrentID string, value bool) error {
 	return r.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(r.bucket).Bucket([]byte(torrentID))
+		b := tx.Bucket(r.user).Bucket(r.bucket).Bucket([]byte(torrentID))
 		if b == nil {
 			return nil
 		}
@@ -161,7 +149,7 @@ func (r *TorrentResumer) Read(torrentID string) (spec *Spec, err error) {
 		}
 	}()
 	err = r.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(r.bucket).Bucket([]byte(torrentID))
+		b := tx.Bucket(r.user).Bucket(r.bucket).Bucket([]byte(torrentID))
 		if b == nil {
 			return fmt.Errorf("bucket not found: %q", torrentID)
 		}
@@ -176,50 +164,10 @@ func (r *TorrentResumer) Read(torrentID string) (spec *Spec, err error) {
 		copy(spec.InfoHash, value)
 
 		var err error
-		value = b.Get(Keys.Port)
-		spec.Port, err = strconv.Atoi(string(value))
-		if err != nil {
-			return err
-		}
 
 		value = b.Get(Keys.Name)
 		if value != nil {
 			spec.Name = string(value)
-		}
-
-		value = b.Get(Keys.Trackers)
-		if value != nil {
-			err = json.Unmarshal(value, &spec.Trackers)
-			if err != nil {
-				// Try to unmarshal old format `[]string`
-				trackers := make([]string, 0)
-				err = json.Unmarshal(value, &trackers)
-				if err != nil {
-					return err
-				}
-				// Migrate to new format `[][]string`
-				spec.Trackers = make([][]string, len(trackers))
-				for i, t := range trackers {
-					spec.Trackers[i] = []string{t}
-				}
-				// Save in new format
-				bt, err := json.Marshal(spec.Trackers)
-				if err != nil {
-					return err
-				}
-				err = b.Put(Keys.Trackers, bt)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		value = b.Get(Keys.URLList)
-		if value != nil {
-			err = json.Unmarshal(value, &spec.URLList)
-			if err != nil {
-				return err
-			}
 		}
 
 		value = b.Get(Keys.FixedPeers)
@@ -298,4 +246,10 @@ func (r *TorrentResumer) Read(torrentID string) (spec *Spec, err error) {
 		return nil
 	})
 	return
+}
+
+func (r *TorrentResumer)Del() error {
+	return r.db.Update(func(tx *bbolt.Tx) error {
+		return tx.Bucket(r.user).DeleteBucket(r.bucket)
+	})
 }

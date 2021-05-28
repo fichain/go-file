@@ -50,7 +50,7 @@ func (t *torrent) handleVerificationDone(ve *verifier.Verifier) {
 			t.pieces[i].Done = true
 			haveMessages = append(haveMessages, peerprotocol.HaveMessage{Index: i})
 		} else {
-			t.log.Debugln("piece not done:", i)
+			//t.log.Debugln("piece not done:", i)
 		}
 	}
 

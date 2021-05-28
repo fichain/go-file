@@ -32,6 +32,6 @@ func (s *Session)getCurrentUserKey(spec *boltdbresumer.SessionSpec) (crypto.Priv
 		return nil, err
 	}
 	spec.UserPrivk = privB
-	s.sessionResumer.Write(s.config.LibP2pUser, spec)
+	s.sessionResumer.Write(spec)
 	return priv, nil
 }

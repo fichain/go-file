@@ -13,7 +13,6 @@ import (
 )
 
 func (t *torrent) start() {
-	t.session.resumer.WriteStarted(t.id, true)
 	// Do not start if already started.
 	if t.errC != nil {
 		return
@@ -24,6 +23,8 @@ func (t *torrent) start() {
 		t.stoppedEventAnnouncer.Close()
 		t.stoppedEventAnnouncer = nil
 	}
+
+	t.session.resumer.WriteStarted(t.id, true)
 
 	t.log.Info("starting torrent")
 	t.errC = make(chan error, 1)
@@ -146,7 +147,7 @@ func (t *torrent) startPieceDownloaders() {
 	if t.status() != Downloading {
 		return
 	}
-	t.log.Debugln("start piece download!")
+	//t.log.Debugln("start piece download!")
 	for _, pe := range t.connectedPeers {
 		if !pe.Downloading {
 			t.startPieceDownloaderFor(pe)
@@ -158,7 +159,7 @@ func (t *torrent) startPieceDownloaderFor(pe *peer.Peer) {
 	if t.status() != Downloading {
 		return
 	}
-	t.log.Debugln("start piece download, peer is:", pe.ID)
+	//t.log.Debugln("start piece download, peer is:", pe.ID)
 	if t.session.ram == nil {
 		t.startSinglePieceDownloader(pe)
 		return
@@ -179,7 +180,7 @@ func (t *torrent) startSinglePieceDownloader(pe *peer.Peer) {
 	if t.status() != Downloading {
 		return
 	}
-	t.log.Debugln("start single piece download, peer is:", pe.ID)
+	//t.log.Debugln("start single piece download, peer is:", pe.ID)
 	pi, allowedFast := t.piecePicker.PickFor(pe)
 	if pi == nil {
 		t.log.Debugln("pi nil", pe.ID)

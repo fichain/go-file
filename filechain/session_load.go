@@ -1,6 +1,7 @@
 package filechain
 
 import (
+	"encoding/hex"
 	"errors"
 	"github.com/fichain/go-file/external/resumer"
 	"github.com/fichain/go-file/internal/bitfield"
@@ -20,7 +21,7 @@ func (s *Session) loadExistingTorrents(ids []string) {
 			//s.invalidTorrentIDs = append(s.invalidTorrentIDs, id)
 			continue
 		}
-		s.log.Debugf("loaded existing torrent: #%s %s", id, t.Name())
+		s.log.Infof("loaded existing torrent: #%s %s", id, t.Name())
 		loaded++
 		if hasStarted {
 			started = append(started, t)
@@ -50,6 +51,7 @@ func (s *Session) loadExistingTorrent(id string) (tt *torrent, hasStarted bool, 
 	if err != nil {
 		return
 	}
+	s.log.Debugf("current load torrent info:%v, data dir: %v\n", hex.EncodeToString(spec.InfoHash), spec.DataDir)
 	hasStarted = spec.Started
 	var info *metainfo.Info
 	var bf *bitfield.Bitfield
@@ -72,6 +74,10 @@ func (s *Session) loadExistingTorrent(id string) (tt *torrent, hasStarted bool, 
 		return nil,spec.Started, errors.New("torrent no data dir")
 	}
 
+	if len(spec.InfoHash) == 0 {
+		return nil, spec.Started, errors.New("torrent info hash not exist")
+	}
+
 	t, err := newTorrent2(
 		s,
 		spec.AddedAt,
@@ -87,6 +93,7 @@ func (s *Session) loadExistingTorrent(id string) (tt *torrent, hasStarted bool, 
 		},
 		spec.StopAfterDownload,
 		spec.DataDir,
+		id,
 	)
 	if err != nil {
 		return

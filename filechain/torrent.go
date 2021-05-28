@@ -1,7 +1,6 @@
 package filechain
 
 import (
-	"encoding/hex"
 	"errors"
 	"github.com/fichain/go-file/internal/storage/filestorage"
 	"net"
@@ -264,7 +263,8 @@ func newTorrent2(
 	bf *bitfield.Bitfield,
 	stats resumer.Stats, // initial stats from previous run
 	stopAfterDownload bool,
-	dataDir			  string,
+	dataDir			  	string,
+	id 					string,
 ) (*torrent, error) {
 	if len(infoHash) != 20 {
 		return nil, errors.New("invalid infoHash (must be 20 bytes)")
@@ -272,7 +272,7 @@ func newTorrent2(
 	cfg := s.config
 	var ih [20]byte
 	copy(ih[:], infoHash)
-	id := hex.EncodeToString(infoHash)
+	s.log.Debugln("new torrent!data dir:",dataDir)
 	sto, err := filestorage.New(dataDir)
 	if err != nil {
 		return nil, err
