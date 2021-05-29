@@ -1,9 +1,11 @@
 package filechain
 
 import (
-	"github.com/fichain/go-file/external/peer"
 	"time"
 
+	"github.com/fichain/go-file/external/peer"
+
+	"github.com/fichain/go-file/external/peersource"
 )
 
 // Torrent event loop
@@ -52,8 +54,8 @@ func (t *torrent) run() {
 			t.checkedPieces = p.Checked
 		case ve := <-t.verifierResultC:
 			t.handleVerificationDone(ve)
-		//case data := <-t.ramNotifyC:
-		//	t.startSinglePieceDownloader(data.(*peer.Peer))
+		case data := <-t.ramNotifyC:
+			t.startSinglePieceDownloader(data.(*peer.Peer))
 		//case addrs := <-t.addrsFromTrackers:
 		//	t.handleNewPeers(addrs, peersource.Tracker)
 		//case addrs := <-t.addPeersCommandC:
@@ -88,6 +90,8 @@ func (t *torrent) run() {
 			t.handlePeerMessage(pm)
 		case stream := <- t.incomingStreamC:
 			t.handleNewIncomingStream(stream)
+		case pes := <-t.incoimgPeersC:
+			t.handleNewPeers(pes, peersource.DHT)
 		}
 	}
 }

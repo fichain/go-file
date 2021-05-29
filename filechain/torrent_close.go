@@ -17,9 +17,9 @@ func (t *torrent) close() {
 	t.stop(errClosed)
 
 	// Maybe we are in "Stopping" state. Close "stopped" event announcer.
-	if t.stoppedEventAnnouncer != nil {
-		t.stoppedEventAnnouncer.Close()
-	}
+	//if t.stoppedEventAnnouncer != nil {
+	//	t.stoppedEventAnnouncer.Close()
+	//}
 
 	t.downloadSpeed.Stop()
 	t.uploadSpeed.Stop()
@@ -35,9 +35,9 @@ func (t *torrent) closePeer(pe *peer.Peer) {
 		t.closeInfoDownloader(id)
 	}
 	delete(t.connectedPeers, pe.P2pID)
-	//todo
-	delete(t.incomingPeers, pe)
-	delete(t.outgoingPeers, pe)
+
+	delete(t.incomingPeers, pe.P2pID)
+	delete(t.outgoingPeers, pe.P2pID)
 	//delete(t.peerIDs, pe.ID)
 	//delete(t.connectedPeerIPs, pe.Conn.IP())
 	if t.piecePicker != nil {

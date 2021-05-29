@@ -23,15 +23,11 @@ func (t *torrent) checkCompletion() bool {
 	t.completed = true
 	close(t.completeC)
 	//todo
-	//for h := range t.outgoingHandshakers {
-	//	h.Close()
-	//}
-	//t.outgoingHandshakers = make(map[*outgoinghandshaker.OutgoingHandshaker]struct{})
-	//for pe := range t.peers {
-	//	if !pe.PeerInterested {
-	//		t.closePeer(pe)
-	//	}
-	//}
+	for _, pe := range t.connectedPeers{
+		if !pe.PeerInterested {
+			t.closePeer(pe)
+		}
+	}
 	t.addrList.Reset()
 	for _, pd := range t.pieceDownloaders {
 		t.closePieceDownloader(pd)

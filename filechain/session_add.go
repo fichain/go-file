@@ -85,7 +85,7 @@ func (s *Session) addFileId(link string, opt *AddTorrentOptions) (*torrent, erro
 	if err != nil {
 		return nil, err
 	}
-	go s.checkTorrent(t)
+	//go s.checkTorrent(t)
 	defer func() {
 		if err != nil {
 			t.Close()
@@ -202,7 +202,7 @@ func (s *Session) CreateFile(dataDir string) (*torrent, error) {
 		return nil, err
 	}
 
-	go s.checkTorrent(t)
+	//go s.checkTorrent(t)
 	defer func() {
 		if err != nil {
 			t.Close()

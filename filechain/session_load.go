@@ -98,7 +98,7 @@ func (s *Session) loadExistingTorrent(id string) (tt *torrent, hasStarted bool, 
 	if err != nil {
 		return
 	}
-	go s.checkTorrent(t)
+	//go s.checkTorrent(t)
 
 	tt = s.insertTorrent(t)
 	return

@@ -44,7 +44,13 @@ type torrent struct {
 	//todo add
 	incomingStreamC chan network.Stream
 	//mconnectedPeers sync.RWMutex
-	connectedPeers map[p2pPeer.ID]*peer.Peer
+	connectedPeers 	map[p2pPeer.ID]*peer.Peer
+	// Also keep a reference to incoming and outgoing peers separately to count them quickly.
+	incomingPeers 	map[p2pPeer.ID]struct{}
+	outgoingPeers 	map[p2pPeer.ID]struct{}
+
+	incoimgPeersC 	chan []p2pPeer.AddrInfo
+
 	infoDownloaderPeers       map[p2pPeer.ID]*infodownloader.InfoDownloader
 	infoDownloaderPeersSnubbed map[p2pPeer.ID]*infodownloader.InfoDownloader
 
@@ -93,6 +99,9 @@ type torrent struct {
 	session *Session
 	addedAt time.Time
 
+	stopping 	bool
+	stopC 		chan struct{}
+
 	// Identifies the torrent being downloaded.
 	infoHash [20]byte
 	//info hash hex string
@@ -117,10 +126,6 @@ type torrent struct {
 
 	// We keep connected peers in this map after they complete handshake phase.
 	peers map[*peer.Peer]struct{}
-
-	// Also keep a reference to incoming and outgoing peers separately to count them quickly.
-	incomingPeers map[*peer.Peer]struct{}
-	outgoingPeers map[*peer.Peer]struct{}
 
 	// Keep recently seen peers to fill underpopulated PEX lists.
 	recentlySeen pexlist.RecentlySeen
@@ -280,6 +285,7 @@ func newTorrent2(
 
 	t := &torrent{
 		connectedPeers: 			make(map[p2pPeer.ID]*peer.Peer),
+		incoimgPeersC: 				make(chan []p2pPeer.AddrInfo),
 		incomingStreamC:			make(chan network.Stream),
 		dhtNeedPeer:				false,
 		session:                   s,
@@ -296,8 +302,8 @@ func newTorrent2(
 		messages:                  make(chan peer.Message),
 		pieceMessagesC:            suspendchan.New(0),
 		peers:                     make(map[*peer.Peer]struct{}),
-		incomingPeers:             make(map[*peer.Peer]struct{}),
-		outgoingPeers:             make(map[*peer.Peer]struct{}),
+		incomingPeers:             make(map[p2pPeer.ID]struct{}),
+		outgoingPeers:             make(map[p2pPeer.ID]struct{}),
 		pieceDownloaders:          make(map[*peer.Peer]*piecedownloader.PieceDownloader),
 		pieceDownloadersSnubbed:   make(map[*peer.Peer]*piecedownloader.PieceDownloader),
 		pieceDownloadersChoked:    make(map[*peer.Peer]*piecedownloader.PieceDownloader),
@@ -346,6 +352,8 @@ func newTorrent2(
 		ramNotifyC:                make(chan interface{}),
 		doneC:                     make(chan struct{}),
 		stopAfterDownload:         stopAfterDownload,
+
+		stopC: 						make(chan struct{}),
 	}
 	t.bytesDownloaded.Inc(stats.BytesDownloaded)
 	t.bytesUploaded.Inc(stats.BytesUploaded)

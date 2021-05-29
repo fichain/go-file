@@ -1,8 +1,6 @@
 package filechain
 
 import (
-	"github.com/fichain/go-file/internal/handshaker/incominghandshaker"
-	"github.com/fichain/go-file/internal/handshaker/outgoinghandshaker"
 	//"github.com/fichain/go-file/internal/handshaker/incominghandshaker"
 	//"github.com/fichain/go-file/internal/handshaker/outgoinghandshaker"
 	//"github.com/fichain/go-file/internal/tracker"
@@ -10,7 +8,7 @@ import (
 )
 
 func (t *torrent) handleStopped() {
-	t.stoppedEventAnnouncer = nil
+	//t.stoppedEventAnnouncer = nil
 	t.errC <- t.lastError
 	t.errC = nil
 	t.portC = nil
@@ -50,12 +48,12 @@ func (t *torrent) stop(err error) {
 	// Data must be closed before closing Verifier.
 	t.stopVerifier()
 
-	t.stopOutgoingHandshakers()
-	t.stopIncomingHandshakers()
-
 	t.resetSpeeds()
 
-	//todo dht
+	t.stopping = true
+	close(t.stopC)
+
+	t.handleStopped()
 
 	t.addrList.Reset()
 }
@@ -87,24 +85,6 @@ func (t *torrent) resetSpeeds() {
 	t.downloadSpeed = metrics.NilMeter{}
 	t.uploadSpeed.Stop()
 	t.uploadSpeed = metrics.NilMeter{}
-}
-
-//todo
-func (t *torrent) stopOutgoingHandshakers() {
-	t.log.Debugln("stopping outgoing handshakers")
-	for oh := range t.outgoingHandshakers {
-		oh.Close()
-	}
-	t.outgoingHandshakers = make(map[*outgoinghandshaker.OutgoingHandshaker]struct{})
-}
-
-//todo
-func (t *torrent) stopIncomingHandshakers() {
-	t.log.Debugln("stopping incoming handshakers")
-	for ih := range t.incomingHandshakers {
-		ih.Close()
-	}
-	t.incomingHandshakers = make(map[*incominghandshaker.IncomingHandshaker]struct{})
 }
 
 func (t *torrent) closeData() {

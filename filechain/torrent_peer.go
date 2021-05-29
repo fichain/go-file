@@ -14,9 +14,9 @@ import (
 )
 
 func (t *torrent) setNeedMorePeers(val bool) {
-	t.mDhtNeedPeer.Lock()
-	t.dhtNeedPeer = val
-	t.mDhtNeedPeer.Unlock()
+	//t.mDhtNeedPeer.Lock()
+	//t.dhtNeedPeer = val
+	//t.mDhtNeedPeer.Unlock()
 }
 
 func (t *torrent)handleNewIncomingStream(stream network.Stream)  {
@@ -36,7 +36,7 @@ func (t *torrent)handleNewIncomingStream(stream network.Stream)  {
 
 func (t *torrent) handleNewPeers(addrs []p2pPeer.AddrInfo, source peersource.Source) {
 	t.log.Debugf("received %d peers from %s\n", len(addrs), source)
-	t.setNeedMorePeers(false)
+	//t.setNeedMorePeers(false)
 	if status := t.status(); status == Stopped || status == Stopping {
 		return
 	}
@@ -53,7 +53,6 @@ func (t *torrent) dialAddresses() {
 		return
 	}
 
-
 	peersConnected := func() int {
 		return len(t.connectedPeers)
 	}
@@ -61,7 +60,7 @@ func (t *torrent) dialAddresses() {
 	for peersConnected() < t.session.config.MaxPeerDial {
 		addr, src := t.addrList.Pop()
 		if addr == nil {
-			t.setNeedMorePeers(true)
+			//t.setNeedMorePeers(true)
 			return
 		}
 		t.log.Debugln("pop addr:", addr.String(), t.addrList.Len())

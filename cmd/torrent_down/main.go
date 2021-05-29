@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/fichain/go-file/filechain"
 	"time"
 )
@@ -32,14 +33,27 @@ func main()  {
 	s := newSession()
 	fileId := "magnet:?xt=urn:btih:4d8bff5cc79f68f07a85fe3f273f2ccd3b637f30&dn=film"
 	//filePath := ""
-	_, err := s.AddFileId(fileId, &filechain.AddTorrentOptions{StopAfterDownload: false, Stopped: false})
+	t, err := s.AddFileId(fileId, &filechain.AddTorrentOptions{StopAfterDownload: false, Stopped: false})
 	if err != nil {
 		panic(err)
 	}
 
+	ticker := time.NewTicker(4 * time.Second)
+
+	stop := false
+
 	for  {
 		select {
-
+		case <-ticker.C:
+			if stop {
+				fmt.Println("start")
+				t.Start()
+				stop = false
+			} else {
+				fmt.Println("stop")
+				t.Stop()
+				stop = true
+			}
 		}
 	}
 	//s.AddFileId("")

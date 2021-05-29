@@ -6,6 +6,7 @@ import (
 	"github.com/fichain/go-file/internal/verifier"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/rcrowley/go-metrics"
+	"time"
 
 	"github.com/fichain/go-file/external/p2p"
 	"github.com/fichain/go-file/external/peer"
@@ -15,14 +16,13 @@ import (
 func (t *torrent) start() {
 	// Do not start if already started.
 	if t.errC != nil {
+		t.log.Debugf("start error, error before start: %v\n", t.errC)
 		return
 	}
 
 	// Stop announcing Stopped event if in "Stopping" state.
-	if t.stoppedEventAnnouncer != nil {
-		t.stoppedEventAnnouncer.Close()
-		t.stoppedEventAnnouncer = nil
-	}
+	t.stopping = false
+	t.stopC = make(chan struct{})
 
 	t.session.resumer.WriteStarted(t.id, true)
 
@@ -53,6 +53,38 @@ func (t *torrent) start() {
 		t.startAnnouncers()
 		t.startInfoDownloaders()
 	}
+	t.startPeriodDht()
+}
+
+func (t *torrent) startPeriodDht()  {
+	t.log.Debugln("start period peers")
+	go func() {
+		ticker := time.NewTicker(60 * time.Second)
+
+		for {
+			select {
+			case <-t.completeC:
+				t.log.Debugln("torrent complete, close dht find providers!")
+				return
+			case <-t.stopC:
+				t.log.Debugln("torrent close, close dht find providers!")
+				return
+			case <-ticker.C:
+				t.log.Debugln("start Announcers")
+				id := t.id
+				peerAddrs, err := p2p.FindProviders(t.session.routeDiscovery, id, 0)
+				if err != nil {
+					t.log.Errorln("find peers error!", err)
+				} else {
+					if len(peerAddrs) != 0 {
+						t.incoimgPeersC <- peerAddrs
+					}
+				}
+			}
+		}
+
+	}()
+
 }
 
 func (t *torrent) startStream()  {

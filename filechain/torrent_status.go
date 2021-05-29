@@ -39,7 +39,7 @@ func (t *torrent) status() Status {
 	switch {
 	case t.errC == nil:
 		return Stopped
-	case t.stoppedEventAnnouncer != nil:
+	case t.stopping:
 		return Stopping
 	case t.allocator != nil:
 		return Allocating
