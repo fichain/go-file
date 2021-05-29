@@ -32,7 +32,6 @@ func (t *torrent) stop(err error) {
 		t.log.Error(err)
 	}
 
-	t.stopAcceptor()
 	t.stopPeers()
 	t.stopPiecedownloaders()
 	t.stopInfoDownloaders()
@@ -102,25 +101,16 @@ func (t *torrent) closeData() {
 	t.checkedPieces = 0
 }
 
-func (t *torrent) stopPeriodicalAnnouncers() {
-	t.log.Debugln("stopping announcers")
-	for _, an := range t.announcers {
-		an.Close()
-	}
-	t.announcers = nil
-	if t.dhtAnnouncer != nil {
-		t.dhtAnnouncer.Close()
-		t.dhtAnnouncer = nil
-	}
-}
-
-func (t *torrent) stopAcceptor() {
-	t.log.Debugln("stopping acceptor")
-	if t.acceptor != nil {
-		t.acceptor.Close()
-	}
-	t.acceptor = nil
-}
+//func (t *torrent) stopPeriodicalAnnouncers() {
+//	t.log.Debugln("stopping announcers")
+//	for _, an := range t.announcers {
+//		an.Close()
+//	}
+//	if t.dhtAnnouncer != nil {
+//		t.dhtAnnouncer.Close()
+//		t.dhtAnnouncer = nil
+//	}
+//}
 
 func (t *torrent) stopPeers() {
 	t.log.Debugln("closing peer connections")

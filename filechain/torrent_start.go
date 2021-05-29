@@ -67,7 +67,7 @@ func (t *torrent) startPeriodDht()  {
 				t.log.Debugln("torrent complete, close dht find providers!")
 				return
 			case <-t.stopC:
-				t.log.Debugln("torrent close, close dht find providers!")
+				t.log.Debugln("torrent stop, close dht find providers!")
 				return
 			case <-ticker.C:
 				t.log.Debugln("start Announcers")

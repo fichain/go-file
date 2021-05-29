@@ -7,20 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fichain/go-file/internal/acceptor"
 	"github.com/fichain/go-file/internal/allocator"
 	"github.com/fichain/go-file/internal/announcer"
 	"github.com/fichain/go-file/internal/bitfield"
 	//"github.com/fichain/go-file/internal/blocklist"
 	"github.com/fichain/go-file/internal/bufferpool"
 	"github.com/fichain/go-file/internal/externalip"
-	"github.com/fichain/go-file/internal/handshaker/incominghandshaker"
-	"github.com/fichain/go-file/internal/handshaker/outgoinghandshaker"
 	"github.com/fichain/go-file/internal/infodownloader"
 	"github.com/fichain/go-file/internal/logger"
 	"github.com/fichain/go-file/internal/metainfo"
-	"github.com/fichain/go-file/internal/mse"
-
 	"github.com/fichain/go-file/internal/pexlist"
 	"github.com/fichain/go-file/internal/piece"
 	"github.com/fichain/go-file/internal/piecedownloader"
@@ -133,8 +128,6 @@ type torrent struct {
 	// Unchoker implements an algorithm to select peers to unchoke based on their download speed.
 	unchoker *unchoker.Unchoker
 
-
-
 	pieceWriterResultC chan *piecewriter.PieceWriter
 
 	// This channel is closed once all pieces are downloaded and verified.
@@ -173,53 +166,18 @@ type torrent struct {
 	//addPeersCommandC     chan []*net.TCPAddr      // AddPeers()
 	//addTrackersCommandC  chan []tracker.Tracker   // AddTrackers()
 
-	// Trackers send announce responses to this channel.
-	addrsFromTrackers chan []*net.TCPAddr
-
 	// Keeps a list of peer addresses to connect.
 	addrList *addrlist.AddrList
-
-	// New raw connections created by OutgoingHandshaker are sent to here.
-	incomingConnC chan net.Conn
-
-	// Keep a set of peer IDs to block duplicate connections.
-	peerIDs map[[20]byte]struct{}
-
-	// Listens for incoming peer connections.
-	acceptor *acceptor.Acceptor
-
-	// Special hash of info hash for encypted connection handshake.
-	sKeyHash [20]byte
-
-	// Announces the status of torrent to trackers to get peer addresses periodically.
-	announcers []*announcer.PeriodicalAnnouncer
-
-	// This announcer announces Stopped event to the trackers after
-	// all periodical trackers are closed.
-	//todo
-	stoppedEventAnnouncer *announcer.StopAnnouncer
 
 	// If not nil, torrent is announced to DHT periodically.
 	dhtAnnouncer *announcer.DHTAnnouncer
 	dhtPeersC    chan []*net.TCPAddr
-
-	// List of peers in handshake state.
-	incomingHandshakers map[*incominghandshaker.IncomingHandshaker]struct{}
-	outgoingHandshakers map[*outgoinghandshaker.OutgoingHandshaker]struct{}
-
-	//incomingNewPeers map[p2pPeer.ID]struct{}
-	//outgoingNewPeers map[p2pPeer.ID]struct{}
-
-	// Handshake results are sent to these channels by handshakers.
-	incomingHandshakerResultC chan *incominghandshaker.IncomingHandshaker
-	outgoingHandshakerResultC chan *outgoinghandshaker.OutgoingHandshaker
 
 	// When metadata of the torrent downloaded completely, a message is sent to this channel.
 	infoDownloaderResultC chan *infodownloader.InfoDownloader
 
 	// A ticker that ticks periodically to keep a certain number of peers unchoked.
 	unchokeTicker *time.Ticker
-
 
 	// Metrics
 	downloadSpeed   metrics.Meter
@@ -232,14 +190,8 @@ type torrent struct {
 	seedDurationUpdatedAt time.Time
 	seedDurationTicker    *time.Ticker
 
-	// Holds connected peer IPs so we don't dial/accept multiple connections to/from same IP.
-	connectedPeerIPs map[string]struct{}
-
 	// Peers that are sending corrupt data are banned.
 	bannedPeerIPs map[string]struct{}
-
-	// A signal sent to run() loop when announcers are stopped.
-	announcersStoppedC chan struct{}
 
 	// Piece buffers that are being downloaded are pooled to reduce load on GC.
 	piecePool *bufferpool.Pool
@@ -325,22 +277,12 @@ func newTorrent2(
 		//notifyListenCommandC:      make(chan notifyListenCommand),
 		//addPeersCommandC:          make(chan []*net.TCPAddr),
 		//addTrackersCommandC:       make(chan []tracker.Tracker),
-		addrsFromTrackers:         make(chan []*net.TCPAddr),
-		peerIDs:                   make(map[[20]byte]struct{}),
-		incomingConnC:             make(chan net.Conn),
-		sKeyHash:                  mse.HashSKey(ih[:]),
 		infoDownloaderResultC:     make(chan *infodownloader.InfoDownloader),
-		incomingHandshakers:       make(map[*incominghandshaker.IncomingHandshaker]struct{}),
-		outgoingHandshakers:       make(map[*outgoinghandshaker.OutgoingHandshaker]struct{}),
-		incomingHandshakerResultC: make(chan *incominghandshaker.IncomingHandshaker),
-		outgoingHandshakerResultC: make(chan *outgoinghandshaker.OutgoingHandshaker),
 		allocatorProgressC:        make(chan allocator.Progress),
 		allocatorResultC:          make(chan *allocator.Allocator),
 		verifierProgressC:         make(chan verifier.Progress),
 		verifierResultC:           make(chan *verifier.Verifier),
-		connectedPeerIPs:          make(map[string]struct{}),
 		bannedPeerIPs:             make(map[string]struct{}),
-		announcersStoppedC:        make(chan struct{}),
 		dhtPeersC:                 make(chan []*net.TCPAddr, 1),
 		externalIP:                externalip.FirstExternalIP(),
 		downloadSpeed:             metrics.NilMeter{},
