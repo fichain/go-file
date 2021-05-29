@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/fichain/go-file/internal/allocator"
-	"github.com/fichain/go-file/internal/announcer"
 	"github.com/fichain/go-file/internal/bitfield"
 	//"github.com/fichain/go-file/internal/blocklist"
 	"github.com/fichain/go-file/internal/bufferpool"
@@ -169,10 +168,6 @@ type torrent struct {
 	// Keeps a list of peer addresses to connect.
 	addrList *addrlist.AddrList
 
-	// If not nil, torrent is announced to DHT periodically.
-	dhtAnnouncer *announcer.DHTAnnouncer
-	dhtPeersC    chan []*net.TCPAddr
-
 	// When metadata of the torrent downloaded completely, a message is sent to this channel.
 	infoDownloaderResultC chan *infodownloader.InfoDownloader
 
@@ -283,7 +278,6 @@ func newTorrent2(
 		verifierProgressC:         make(chan verifier.Progress),
 		verifierResultC:           make(chan *verifier.Verifier),
 		bannedPeerIPs:             make(map[string]struct{}),
-		dhtPeersC:                 make(chan []*net.TCPAddr, 1),
 		externalIP:                externalip.FirstExternalIP(),
 		downloadSpeed:             metrics.NilMeter{},
 		uploadSpeed:               metrics.NilMeter{},

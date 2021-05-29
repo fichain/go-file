@@ -54,6 +54,7 @@ func main()  {
 				t.Stop()
 				stop = true
 			}
+			fmt.Printf("torrent stats:%v\n", t.DataStats())
 		}
 	}
 	//s.AddFileId("")
