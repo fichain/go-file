@@ -2,7 +2,7 @@ package filechain
 
 import (
 	"errors"
-	p2p2 "github.com/fichain/go-file/external/p2p"
+	p2p "github.com/fichain/go-file/external/p2p"
 	"github.com/fichain/go-file/external/resumer/boltdbresumer"
 	"github.com/fichain/go-file/internal/piececache"
 	"github.com/fichain/go-file/internal/resourcemanager"
@@ -150,12 +150,12 @@ func NewSession(cfg Config) (*Session, error) {
 		return nil, err
 	}
 
-	host, err := p2p2.NewRoutedHost(cfg.LibP2pPort, cfg.LibP2pBootStrap, priv)
+	host, err := p2p.NewRoutedHost(cfg.LibP2pPort, cfg.LibP2pBootStrap, priv)
 	if err != nil {
 		return nil, err
 	}
 	l.Infof("create host success!, id is: %v, addrs is: %v\n", host.ID(), host.Addrs())
-	routeDiscovery, err := p2p2.NewRoutedDiscovery(host)
+	routeDiscovery, err := p2p.NewRoutedDiscovery(host)
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,7 @@ import (
 //todo mode server
 func NewRoutedDiscovery(h host.Host) (*discovery.RoutingDiscovery, error) {
 	ctx := context.Background()
-	dht, err := dht.New(ctx, h, dht.Mode(dht.ModeServer))
+	dht, err := dht.New(ctx, h, dht.Mode(dht.ModeAuto))
 	if err != nil {
 		return nil, err
 	}
