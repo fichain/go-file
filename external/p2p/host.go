@@ -47,9 +47,9 @@ func NewRoutedHost(listenPort int, bootstrapPeers []string, priv crypto.PrivKey)
 		libp2p.DefaultMuxers,
 		libp2p.Security(libp2ptls.ID, libp2ptls.New),
 		libp2p.Security(noise.ID, noise.New),
-		//libp2p.NATPortMap(),
-		//libp2p.EnableAutoRelay(),
-		//libp2p.EnableNATService(),
+		libp2p.NATPortMap(),
+		libp2p.EnableAutoRelay(),
+		libp2p.EnableNATService(),
 		libp2p.ConnectionManager(connmgr.NewConnManager(
 			100,         // Lowwater
 			400,         // HighWater,
